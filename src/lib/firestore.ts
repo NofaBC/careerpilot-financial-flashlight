@@ -27,13 +27,26 @@ export async function addEntry(data: EntryFormData, userId: string): Promise<str
 }
 
 export async function getEntries(userId: string): Promise<FinancialEntry[]> {
-  const q = query(
-    collection(db, COLLECTION),
-    where('createdBy', '==', userId),
-    orderBy('date', 'desc')
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => {
+  // Try with orderBy first; fall back to client-side sort if composite index is missing
+  let snapshot;
+  try {
+    const q = query(
+      collection(db, COLLECTION),
+      where('createdBy', '==', userId),
+      orderBy('date', 'desc')
+    );
+    snapshot = await getDocs(q);
+  } catch (err) {
+    // Composite index may not exist yet — query without orderBy and sort client-side
+    console.warn('Falling back to client-side sort (composite index may be needed):', err);
+    const q = query(
+      collection(db, COLLECTION),
+      where('createdBy', '==', userId)
+    );
+    snapshot = await getDocs(q);
+  }
+
+  const entries = snapshot.docs.map((d) => {
     const data = d.data();
     return {
       id: d.id,
@@ -52,6 +65,8 @@ export async function getEntries(userId: string): Promise<FinancialEntry[]> {
       createdBy: data.createdBy ?? '',
     } as FinancialEntry;
   });
+
+  return entries.sort((a, b) => b.date.localeCompare(a.date));
 }
 
 export async function deleteEntry(id: string): Promise<void> {
