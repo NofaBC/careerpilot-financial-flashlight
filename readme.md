@@ -1,189 +1,112 @@
 # CareerPilot AI – Financial Flashlight
 
-CareerPilot AI – Financial Flashlight is a lightweight internal financial tracking dashboard built to monitor the daily revenue, expenses, profit, and performance trends of CareerPilot AI before NOFA Command Core™ is fully developed.
+Internal financial tracking dashboard for CareerPilot AI. Tracks daily revenue, expenses, profit, and weekly/monthly totals.
 
-Its purpose is to provide fast, practical financial visibility so decisions can be made from real numbers instead of assumptions. This tool is designed to help track business health closely during the early operating stage, especially while API usage, operating costs, and revenue patterns are still being actively watched.
+## Tech Stack
 
-## Purpose
-
-This tool provides immediate visibility into:
-
-- Daily revenue
-- Refunds
-- API and operational costs
-- Daily profit
-- Weekly performance
-- Monthly performance
-- Revenue trends
-- Cost trends
-- Profitability patterns
-
-It is intentionally simple, fast, and operational.
-
-This is **not** a full accounting platform. It is an internal financial control tool — a “financial flashlight” — meant to help keep CareerPilot AI financially clear, disciplined, and profitable.
-
-## Current Scope
-
-Version 1 is focused on:
-
-- Manual financial data entry
-- Automatic calculation of:
-  - Net revenue
-  - Total cost
-  - Daily profit
-  - Weekly totals
-  - Monthly totals
-  - Revenue per subscriber
-  - Cost as a percentage of revenue
-- Viewing saved financial entries
-- Tracking notes tied to specific days
-- Reviewing financial performance in a lightweight dashboard
-
-## Planned Stack
-
-This project is intended to run on:
-
-- **GitHub** for source control
-- **Vercel** for deployment
-- **Firebase Auth** for internal access control
-- **Firestore** for persistent financial records
-- **OpenAI API** for optional financial insights and summaries
+- **Next.js 16** (App Router, TypeScript)
+- **Tailwind CSS** with custom dark theme
+- **Firebase Auth** (Google sign-in)
+- **Firestore** (persistent financial entries)
+- **OpenAI API** (optional insight layer, server-side only)
+- **Vercel** (deployment)
 
 ## Architecture Principles
 
-The core financial calculations must remain deterministic.
+All financial calculations are **deterministic and code-based** (`src/lib/calculations.ts`). AI is only used as an optional commentary/insight layer and never computes revenue, cost, profit, or totals.
 
-That means:
+## Project Structure
 
-- Revenue math is calculated by code, not AI
-- Cost math is calculated by code, not AI
-- Profit math is calculated by code, not AI
-- Weekly and monthly rollups are calculated by code, not AI
+```
+src/
+  app/
+    page.tsx                    # Root redirect to /dashboard
+    layout.tsx                  # Root layout
+    login/page.tsx              # Google sign-in page
+    dashboard/page.tsx          # Main dashboard (protected)
+    api/insights/route.ts       # Secure OpenAI insight endpoint
+  components/
+    DashboardHero.tsx           # Hero section with title + badge
+    MetricCard.tsx              # Reusable metric display card
+    EntryForm.tsx               # Daily financial entry form
+    MonthSnapshot.tsx           # Month metrics panel
+    EntriesTable.tsx            # Saved entries table
+    InsightPanel.tsx            # Optional AI insight panel
+    ProtectedRoute.tsx          # Auth guard wrapper
+  lib/
+    firebase.ts                 # Firebase client initialization
+    auth.ts                     # Auth hooks and sign-in/out
+    firestore.ts                # Firestore CRUD operations
+    calculations.ts             # Deterministic financial math
+    format.ts                   # Currency and number formatting
+    openai.ts                   # Server-only OpenAI helper
+  types/
+    financial.ts                # TypeScript interfaces
+```
 
-OpenAI should only be used as an **insight layer** for things like:
+## Setup
 
-- Explaining cost spikes
-- Summarizing weekly performance
-- Highlighting trends
-- Noticing possible anomalies
-- Providing operational observations
+### 1. Install dependencies
 
-AI should **not** be treated as the source of truth for the numbers.
+```bash
+npm install
+```
 
-## Core Dashboard Sections
+### 2. Configure environment variables
 
-The dashboard should preserve and support these main sections:
+Copy `.env.local.example` to `.env.local` and fill in your values:
 
-1. **Hero / Overview**
-   - Tool name
-   - Internal dashboard description
-   - Internal utility badge
+```bash
+cp .env.local.example .env.local
+```
 
-2. **Today Metrics**
-   - Today net revenue
-   - Today total cost
-   - Today profit
-   - Month net profit snapshot
+### 3. Firebase setup
 
-3. **Week Metrics**
-   - This week revenue
-   - This week cost
-   - This week profit
+1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
+2. Enable **Authentication** with **Google** sign-in provider
+3. Enable **Cloud Firestore** in production mode
+4. Deploy the Firestore rules from `firestore.rules`
+5. Copy the Firebase config values into `.env.local`
 
-4. **Daily Entry Form**
-   - Date
-   - New subscribers
-   - Renewals
-   - Total revenue
-   - Refunds
-   - AI API cost
-   - Jobs API cost
-   - Hosting / infrastructure cost
-   - Other costs
-   - Notes
+### 4. Run locally
 
-5. **Month Snapshot**
-   - Month revenue
-   - Month cost
-   - Month new subscribers
-   - Month renewals
-   - Revenue per subscriber
-   - Cost percentage of revenue
+```bash
+npm run dev
+```
 
-6. **Saved Entries Table**
-   - Historical daily entries
-   - Quick review of notes and financial trends
+### 5. Deploy to Vercel
+
+1. Push to GitHub
+2. Import the repo in Vercel
+3. Add all environment variables from `.env.local.example` to Vercel project settings
+4. Deploy
+
+## Environment Variables
+
+- `NEXT_PUBLIC_FIREBASE_API_KEY` — Firebase API key (client)
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` — Firebase auth domain (client)
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID` — Firebase project ID (client)
+- `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` — Firebase storage bucket (client)
+- `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` — Firebase sender ID (client)
+- `NEXT_PUBLIC_FIREBASE_APP_ID` — Firebase app ID (client)
+- `OPENAI_API_KEY` — OpenAI API key (server only, never in browser)
+
+## Security
+
+- OpenAI API key is **never exposed** to the client
+- Firebase admin credentials are **not used** (client SDK only)
+- Dashboard is protected behind Firebase Auth
+- Firestore rules ensure users can only access their own entries
+- All environment variables follow the `NEXT_PUBLIC_` convention correctly
 
 ## Data Model
 
-Each daily record should support fields such as:
+Each `financial_entries` document contains:
 
-- `date`
-- `newSubs`
-- `renewals`
-- `revenue`
-- `refunds`
-- `aiCost`
-- `jobsCost`
-- `hostingCost`
-- `otherCost`
-- `notes`
-- `createdAt`
-- `updatedAt`
-- `createdBy`
-
-## Project Goals
-
-The immediate goal is to create a reliable internal dashboard that gives clear financial awareness each day.
-
-The broader long-term goal is for this tool to evolve into or integrate with:
-
-- **NOFA Command Core™** for centralized intelligence and control
-- **API Sentinel AI™** for API monitoring and cost control
-- **AffiliateLedger AI™** for affiliate revenue tracking
-
-## Build Priorities
-
-The recommended build order is:
-
-1. Set up the repo and project structure
-2. Deploy the app to Vercel
-3. Connect Firebase Auth
-4. Connect Firestore
-5. Replace local storage with persistent database records
-6. Protect access to internal users only
-7. Add optional AI insight generation through a secure backend route
-8. Expand with charts, reserve tracking, Stripe fee tracking, and retained cash logic later
-
-## What This Tool Is Not
-
-This tool is not meant to be:
-
-- A full accounting system
-- A tax reporting system
-- A bookkeeping replacement
-- A payroll system
-- An AI-dependent dashboard
-
-It is a focused operational finance dashboard for internal use.
-
-## Development Notes
-
-When building or expanding this app:
-
-- Keep the UX fast and simple
-- Preserve clarity over complexity
-- Avoid unnecessary features in v1
-- Keep financial logic transparent
-- Keep AI optional, never required
-- Treat security and credential handling seriously
-- Never expose private API keys in the frontend
-
-## Internal Use
-
-This project is intended for internal use by NOFA AI Factory and CareerPilot AI operations.
-
-## Status
-
-Initial planning and architecture defined.  
-Current goal: migrate the existing dashboard into a production-ready internal app using GitHub, Vercel, Firebase, and secure server-side AI insights.
+- `date` (YYYY-MM-DD)
+- `newSubs`, `renewals` (integers)
+- `revenue`, `refunds` (dollars)
+- `aiCost`, `jobsCost`, `hostingCost`, `otherCost` (dollars)
+- `notes` (text)
+- `createdAt`, `updatedAt` (ISO timestamps)
+- `createdBy` (Firebase UID)

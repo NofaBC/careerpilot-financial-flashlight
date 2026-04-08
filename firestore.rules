@@ -1,0 +1,13 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Financial entries: only the creator can read/write their own entries
+    match /financial_entries/{entryId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == resource.data.createdBy;
+      allow create: if request.auth != null
+        && request.resource.data.createdBy == request.auth.uid;
+    }
+  }
+}
